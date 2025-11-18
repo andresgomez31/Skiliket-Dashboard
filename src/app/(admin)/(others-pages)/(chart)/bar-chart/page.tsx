@@ -16,7 +16,18 @@ export default function page() {
       <PageBreadcrumb pageTitle="Bar Chart" />
       <div className="space-y-6">
         <ComponentCard title="Bar Chart 1">
-          <BarChartOne />
+          <BarChartOne
+            title="Total Events per Device"
+            xLabel="Device ID"
+            yLabel="Events"
+            xValues={["Sensor A", "Sensor B", "Sensor C", "Sensor D"]}
+            ySeries={[
+              {
+                name: "Events",
+                data: [120, 90, 150, 200],
+              },
+            ]}
+          />
         </ComponentCard>
       </div>
     </div>
