@@ -15,7 +15,22 @@ export default function LineChart() {
       <PageBreadcrumb pageTitle="Line Chart" />
       <div className="space-y-6">
         <ComponentCard title="Line Chart 1">
-          <LineChartOne />
+          <LineChartOne
+            title="Temperature Over Time"
+            xLabel="Time (hours)"
+            yLabel="Temperature (°C)"
+            xValues={["10:00", "11:00", "12:00", "13:00"]}
+            ySeries={[
+              {
+                name: "Sensor A",
+                data: [21, 22.5, 23, 24],
+              },
+              {
+                name: "Sensor B",
+                data: [20, 21, 21.5, 22],
+              },
+            ]}
+          />
         </ComponentCard>
       </div>
     </div>
