@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "gendbtypes": "npx supabase gen types typescript --project-id xpptjtldpwvwlmtufhwu --schema public > src/database/database.types.ts"
+    "gendbtypes": "npx supabase gen types typescript --project-id xpptjtldpwvwlmtufhwu --schema public,simulation > src/database/database.types.ts"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.15",
