@@ -96,18 +96,101 @@ export type Database = {
         }
         Relationships: []
       }
-      test: {
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  simulation: {
+    Tables: {
+      locations: {
         Row: {
-          id: number
-          texto: string
+          from_dt: string | null
+          location: unknown
+          node: number
+          to_dt: string | null
         }
         Insert: {
-          id?: number
-          texto: string
+          from_dt?: string | null
+          location: unknown
+          node: number
+          to_dt?: string | null
         }
         Update: {
+          from_dt?: string | null
+          location?: unknown
+          node?: number
+          to_dt?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      measures: {
+        Row: {
+          co2: number
+          humidity: number
+          measured_at: string | null
+          node: number
+          noise: number
+          uv: number
+        }
+        Insert: {
+          co2: number
+          humidity: number
+          measured_at?: string | null
+          node: number
+          noise: number
+          uv: number
+        }
+        Update: {
+          co2?: number
+          humidity?: number
+          measured_at?: string | null
+          node?: number
+          noise?: number
+          uv?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nodes: {
+        Row: {
+          deleted_at: string | null
+          id: number
+          name: string
+        }
+        Insert: {
+          deleted_at?: string | null
           id?: number
-          texto?: string
+          name: string
+        }
+        Update: {
+          deleted_at?: string | null
+          id?: number
+          name?: string
         }
         Relationships: []
       }
@@ -246,6 +329,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
+    Enums: {},
+  },
+  simulation: {
     Enums: {},
   },
 } as const
