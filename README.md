@@ -16,7 +16,7 @@ cd Skiliket-Dashboard
 * SSH: 
 
 ```bash
-git clone git@github.com:andresaugom/Skiliket-Dashboard.git
+git clone git@github.com:andresgomez31/Skiliket-Dashboard.git
 cd Skiliket-Dashboard
 ```
 
