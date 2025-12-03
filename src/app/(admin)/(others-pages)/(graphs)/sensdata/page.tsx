@@ -12,9 +12,13 @@ export default function SensDataPage() {
   // UI STATE
   // =======================
   const [schema, setSchema] = useState<"public" | "simulation">("simulation");
+
   const [nodes, setNodes] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
+
   const [measures, setMeasures] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [loading, setLoading] = useState(true);
 
   // Filtering
@@ -25,8 +29,6 @@ export default function SensDataPage() {
   // Pagination
   const [page, setPage] = useState(1);
   const pageSize = 20;
-  const paginated = measures.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.ceil(measures.length / pageSize);
 
   // Chart tabs
   const [tab, setTab] = useState<"humidity" | "co2" | "noise" | "uv">(
@@ -34,53 +36,91 @@ export default function SensDataPage() {
   );
 
   // =======================
-  // Fetch function
+  // Fetch nodes & locations (light tables)
   // =======================
-  async function fetchData() {
-    setLoading(true);
-
+  async function fetchStatic() {
     const s = supabase.schema(schema);
 
-    // Build filters
-    let query = s.from("measures").select("*");
-
-    if (fromDate) query = query.gte("measured_at", fromDate);
-    if (toDate) query = query.lte("measured_at", toDate);
-    if (filterNode !== "all") query = query.eq("node", filterNode);
-
-    const [nodesRes, locRes, measRes] = await Promise.all([
+    const [nodesRes, locRes] = await Promise.all([
       s.from("nodes").select("*"),
       s.from("locations").select("*"),
-      query,
     ]);
 
     setNodes(nodesRes.data ?? []);
     setLocations(locRes.data ?? []);
-    setMeasures(measRes.data ?? []);
-    setLoading(false);
   }
 
+  // =======================
+  // Fetch paginated measures
+  // =======================
+  async function fetchMeasures() {
+    const s = supabase.schema(schema);
+
+    let query = s
+      .from("measures")
+      .select("*", { count: "exact" })
+      .order("measured_at", { ascending: true });
+
+    // Filters
+    if (fromDate) query = query.gte("measured_at", fromDate);
+    if (toDate) query = query.lte("measured_at", toDate);
+    if (filterNode !== "all") query = query.eq("node", filterNode);
+
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, count, error } = await query.range(from, to);
+
+    if (!error) {
+      setMeasures(data ?? []);
+      setTotalCount(count ?? 0);
+    }
+  }
+
+  // =======================
+  // Fetch static only on schema change
+  // =======================
   useEffect(() => {
-    fetchData();
-  }, [schema, fromDate, toDate, filterNode]);
+    setPage(1);
+    setLoading(true);
+    (async () => {
+      await fetchStatic();
+      await fetchMeasures();
+      setLoading(false);
+    })();
+  }, [schema]);
+
+  // =======================
+  // Pagination / Filters
+  // =======================
+  useEffect(() => {
+    setPage(1);
+  }, [fromDate, toDate, filterNode]);
+
+  useEffect(() => {
+    setLoading(true);
+    (async () => {
+      await fetchMeasures();
+      setLoading(false);
+    })();
+  }, [page, fromDate, toDate, filterNode]);
 
   if (loading) return <p>Loading...</p>;
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   // =========================
   // CHART TRANSFORMATIONS
   // =========================
-  const xValues = [...new Set(measures.map((m) => m.measured_at))];
-  const nodesById = [...new Set(measures.map((m) => m.node))];
+  const xValues = measures.map((m) => m.measured_at);
+  const nodesOnPage = [...new Set(measures.map((m) => m.node))];
 
   function seriesFor(field: "humidity" | "co2" | "noise" | "uv") {
-    return nodesById.map((nodeId) => {
+    return nodesOnPage.map((nodeId) => {
       const nodeMeasures = measures.filter((m) => m.node === nodeId);
       return {
         name: `Node ${nodeId}`,
-        data: xValues.map((t) => {
-          const row = nodeMeasures.find((m) => m.measured_at === t);
-          return row ? row[field] : null;
-        }),
+        data: nodeMeasures.map((m) => m[field]),
       };
     });
   }
@@ -93,7 +133,6 @@ export default function SensDataPage() {
       {/* ======================== */}
       <section className="flex flex-col gap-4 p-4 rounded border bg-white">
 
-        {/* Schema toggle */}
         <div className="flex gap-4 items-center">
           <label className="font-medium">Schema:</label>
           <select
@@ -106,7 +145,6 @@ export default function SensDataPage() {
           </select>
         </div>
 
-        {/* Filters */}
         <div className="flex gap-4 items-center">
           <label>From:</label>
           <input
@@ -141,18 +179,11 @@ export default function SensDataPage() {
               </option>
             ))}
           </select>
-
-          <button
-            onClick={fetchData}
-            className="px-4 py-2 bg-black text-white rounded"
-          >
-            Apply
-          </button>
         </div>
       </section>
 
       {/* ====================== */}
-      {/* TABLE 1: Nodes          */}
+      {/* NODES TABLE            */}
       {/* ====================== */}
       <section>
         <h2 className="text-xl font-semibold mb-3">Nodes</h2>
@@ -179,7 +210,7 @@ export default function SensDataPage() {
       </section>
 
       {/* ====================== */}
-      {/* TABLE 2: Locations      */}
+      {/* LOCATIONS GRID         */}
       {/* ====================== */}
       <section>
         <h2 className="text-xl font-semibold mb-3">Current Locations</h2>
@@ -200,7 +231,7 @@ export default function SensDataPage() {
       </section>
 
       {/* ====================== */}
-      {/* TABLE 3: Raw Measures   */}
+      {/* MEASURES TABLE         */}
       {/* ====================== */}
       <section>
         <h2 className="text-xl font-semibold mb-3">Sensor Measures (Paginated)</h2>
@@ -218,7 +249,7 @@ export default function SensDataPage() {
           </thead>
 
           <tbody>
-            {paginated.map((m, i) => (
+            {measures.map((m, i) => (
               <tr key={i} className="border-t">
                 <td className="p-2">{m.node}</td>
                 <td className="p-2">{m.humidity}</td>
@@ -231,7 +262,6 @@ export default function SensDataPage() {
           </tbody>
         </table>
 
-        {/* Pagination controls */}
         <div className="flex justify-center gap-4 mt-4">
           <button
             disabled={page === 1}
@@ -254,7 +284,7 @@ export default function SensDataPage() {
       </section>
 
       {/* ========================= */}
-      {/* TABS FOR SENSOR CHARTS   */}
+      {/* SENSOR CHARTS TABS       */}
       {/* ========================= */}
       <section>
         <div className="flex gap-4 border-b pb-2 mb-4">
@@ -318,15 +348,16 @@ export default function SensDataPage() {
       {/* BAR CHART             */}
       {/* ====================== */}
       <BarChartOne
-        title="Measurements per Node"
+        title="Measurements per Node (Page Only)"
         xLabel="Node"
         yLabel="Count"
-        xValues={nodesById.map((n) => `Node ${n}`)}
+        xValues={nodesOnPage.map((n) => `Node ${n}`)}
         ySeries={[
           {
             name: "Measures",
-            data: nodesById.map(
-              (id) => measures.filter((m) => m.node === id).length
+            data: nodesOnPage.map(
+              (id) =>
+                measures.filter((m) => m.node === id).length
             ),
           },
         ]}

@@ -18,8 +18,12 @@ export default function SensorDataPage() {
   const [nodes, setNodes] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [measures, setMeasures] = useState<any[]>([]);
-
   const [loading, setLoading] = useState(false);
+
+  // Pagination
+  const PAGE_SIZE = 200;
+  const [page, setPage] = useState(0);
+  const [totalRows, setTotalRows] = useState(0);
 
   // Filters
   const [filterNode, setFilterNode] = useState<number | "all">("all");
@@ -31,6 +35,7 @@ export default function SensorDataPage() {
     setNodes([]);
     setLocations([]);
     setMeasures([]);
+    setPage(0);
     loadNodesAndLocations();
   }, [schema]);
 
@@ -50,26 +55,43 @@ export default function SensorDataPage() {
   }
 
   // ============================================================
-  // FILTERED MEASURES QUERY
+  // PAGINATED + FILTERED MEASURES QUERY
   // ============================================================
-  async function fetchData() {
+  async function fetchData(goToPage = 0) {
     setLoading(true);
 
     const s = supabase.schema(schema);
-    let query = s.from("measures").select("*");
 
-    if (fromDate) query = query.gte("measured_at", fromDate);
-    if (toDate) query = query.lte("measured_at", toDate);
-    if (filterNode !== "all") query = query.eq("node", filterNode);
+    // COUNT query (only metadata)
+    let countQuery = s.from("measures").select("*", { count: "exact", head: true });
 
-    const measRes = await query;
+    if (fromDate) countQuery = countQuery.gte("measured_at", fromDate);
+    if (toDate) countQuery = countQuery.lte("measured_at", toDate);
+    if (filterNode !== "all") countQuery = countQuery.eq("node", filterNode);
+
+    const countRes = await countQuery;
+    setTotalRows(countRes.count ?? 0);
+
+    // DATA query (limited)
+    let dataQuery = s
+      .from("measures")
+      .select("*")
+      .order("measured_at", { ascending: false })
+      .range(goToPage * PAGE_SIZE, goToPage * PAGE_SIZE + PAGE_SIZE - 1);
+
+    if (fromDate) dataQuery = dataQuery.gte("measured_at", fromDate);
+    if (toDate) dataQuery = dataQuery.lte("measured_at", toDate);
+    if (filterNode !== "all") dataQuery = dataQuery.eq("node", filterNode);
+
+    const measRes = await dataQuery;
 
     setMeasures(measRes.data ?? []);
+    setPage(goToPage);
     setLoading(false);
   }
 
   // ============================================================
-  // EXPORT CSV
+  // EXPORT CSV — now paginated data only
   // ============================================================
   const exportCSV = () => {
     if (!measures.length) return;
@@ -83,7 +105,7 @@ export default function SensorDataPage() {
     ].join("\n");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    saveAs(blob, `measures_export.csv`);
+    saveAs(blob, `measures_export_page_${page + 1}.csv`);
   };
 
   // ============================================================
@@ -118,6 +140,7 @@ export default function SensorDataPage() {
         {/* CONTROLS */}
         <ComponentCard className="md:col-span-1" title="Filters & Schema">
           <div className="flex flex-col gap-4">
+            {/* schema selector */}
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-medium">Schema</h3>
@@ -126,13 +149,17 @@ export default function SensorDataPage() {
               <select
                 className="border rounded p-2 bg-white text-sm"
                 value={schema}
-                onChange={(e) => setSchema(e.target.value as any)}
+                onChange={(e) => {
+                  setSchema(e.target.value as any);
+                  setPage(0);
+                }}
               >
                 <option value="public">public</option>
                 <option value="simulation">simulation</option>
               </select>
             </div>
 
+            {/* filters */}
             <div className="grid grid-cols-1 gap-3">
               <label className="text-sm font-medium">From</label>
               <input
@@ -169,9 +196,10 @@ export default function SensorDataPage() {
               </select>
             </div>
 
+            {/* buttons */}
             <div className="flex items-center gap-3 justify-between pt-2">
               <button
-                onClick={fetchData}
+                onClick={() => fetchData(0)}
                 className="flex-1 px-4 py-2 bg-black text-white rounded hover:bg-gray-900 transition text-sm"
               >
                 Apply Filters
@@ -182,15 +210,6 @@ export default function SensorDataPage() {
                 onClick={exportCSV}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
-                </svg>
                 Export CSV
               </button>
             </div>
@@ -198,7 +217,7 @@ export default function SensorDataPage() {
             <div className="text-xs text-gray-500 pt-2">
               <div>Nodes: <span className="font-medium text-gray-700">{nodes.length}</span></div>
               <div>Locations: <span className="font-medium text-gray-700">{locations.length}</span></div>
-              <div>Measurements: <span className="font-medium text-gray-700">{measures.length}</span></div>
+              <div>Total matching: <span className="font-medium text-gray-700">{totalRows}</span></div>
             </div>
           </div>
         </ComponentCard>
@@ -211,7 +230,6 @@ export default function SensorDataPage() {
                 <div className="flex items-center gap-4">
                   <span className="text-sm text-gray-600">Showing</span>
                   <span className="font-semibold">{measures.length}</span>
-                  <span className="text-sm text-gray-400 hidden md:inline">measurements</span>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -224,7 +242,9 @@ export default function SensorDataPage() {
                 {loading ? (
                   <div className="py-8 text-center text-gray-600">Loading...</div>
                 ) : measures.length === 0 ? (
-                  <div className="py-8 text-center text-gray-500">No measurements found. Apply filters to load data.</div>
+                  <div className="py-8 text-center text-gray-500">
+                    No measurements found. Apply filters to load data.
+                  </div>
                 ) : (
                   <BasicTableOne
                     columns={columns}
@@ -233,10 +253,33 @@ export default function SensorDataPage() {
                   />
                 )}
               </div>
+
+              {/* pagination */}
+              <div className="flex justify-between pt-3">
+                <button
+                  disabled={page === 0}
+                  onClick={() => fetchData(page - 1)}
+                  className="px-4 py-2 border rounded disabled:opacity-40"
+                >
+                  Prev
+                </button>
+
+                <span className="text-sm text-gray-600">
+                  Page {page + 1} of {Math.max(1, Math.ceil(totalRows / PAGE_SIZE))}
+                </span>
+
+                <button
+                  disabled={(page + 1) * PAGE_SIZE >= totalRows}
+                  onClick={() => fetchData(page + 1)}
+                  className="px-4 py-2 border rounded disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </ComponentCard>
 
-          {/* Optional quick insights */}
+          {/* insights */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 border rounded bg-white">
               <div className="text-xs text-gray-500">Latest measurement</div>
@@ -244,7 +287,9 @@ export default function SensorDataPage() {
             </div>
             <div className="p-4 border rounded bg-white">
               <div className="text-xs text-gray-500">Unique nodes</div>
-              <div className="font-semibold text-sm mt-1">{Array.from(new Set(measures.map((m) => m.node))).length}</div>
+              <div className="font-semibold text-sm mt-1">
+                {Array.from(new Set(measures.map((m) => m.node))).length}
+              </div>
             </div>
             <div className="p-4 border rounded bg-white">
               <div className="text-xs text-gray-500">Avg humidity</div>

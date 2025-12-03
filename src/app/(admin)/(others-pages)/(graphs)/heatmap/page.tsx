@@ -28,69 +28,57 @@ export default function HeatMapPage() {
     async function load() {
       if (!supabase) return;
 
-      // 1. Locations
+      const start = `${date} ${hour}:00:00`;
+      const end = `${date} ${hour}:59:59`;
+
+      /* ----------------------------- 1. LOCATIONS ------------------------------ */
       const { data: locs, error: lerr } = await supabase
         .schema(schema)
         .from("locations")
         .select("node, location");
 
-      if (lerr) {
-        console.error(lerr);
-        return;
-      }
+      if (lerr) return console.error(lerr);
 
-      // 2. Average crowd_index per node
-      const { data: crowd, error: cerr } = await supabase
+      /* ------------------------- 2. AVG CROWD PER NODE ------------------------- */
+      // build the query first and cast to any to call .group which isn't present on the typed builder
+      const crowdBuilder = supabase
         .schema(schema)
         .from("crowd_index")
-        .select("node, avg:crowd_index")
-        .lte("measured_at", `${date} ${hour}:59:59`)
-        .gte("measured_at", `${date} ${hour}:00:00`);
+        .select("node, avg:avg(crowd_index)")
+        .gte("measured_at", start)
+        .lte("measured_at", end);
 
-      if (cerr) {
-        console.error(cerr);
-        return;
-      }
+      const { data: crowdAgg, error: aerr } = await (crowdBuilder as any).group("node");
 
-      // 3. Max for normalization
-      const { data: maxCrowdData, error: maxErr } = await supabase
+      if (aerr) return console.error(aerr);
+
+      /* ------------------------------ 3. MIN / MAX ----------------------------- */
+      const { data: minmax, error: mmErr } = await supabase
         .schema(schema)
         .from("crowd_index")
-        .select("crowd_index")
-        .order("crowd_index", { ascending: false })
-        .limit(1);
+        .select("min: min(crowd_index), max: max(crowd_index)")
+        .gte("measured_at", start)
+        .lte("measured_at", end)
+        .single();
 
-      if (maxErr) {
-        console.error(maxErr);
-        return;
-      }
+      if (mmErr) return console.error(mmErr);
 
-      const { data: minCrowdData, error: minErr } = await supabase
-        .schema(schema)
-        .from("crowd_index")
-        .select("crowd_index")
-        .order("crowd_index", { ascending: true })
-        .limit(1);
+      // coerce returned values to numbers before arithmetic
+      const minVal = Number(minmax?.min ?? 0);
+      const maxVal = Number(minmax?.max ?? 1);
+      const range = maxVal - minVal || 1;
 
-      if (minErr) {
-        console.error(minErr);
-        return;
-      }
-
-      const minVal = minCrowdData?.[0]?.crowd_index || 0;
-      const maxVal = maxCrowdData?.[0]?.crowd_index || 1;
-
-      // 4. Join
-      const joined = locs
+      /* ------------------------------- 4. JOIN --------------------------------- */
+      const joined = (locs as LocationRow[])
         .map((l: LocationRow) => {
-          const agg = (crowd as CrowdAggRow[]).find((c) => c.node === l.node);
+          const agg = (crowdAgg as any[]).find((c) => c.node === l.node);
           if (!agg) return null;
 
-          const [latS, lonS] = l.location.replace("(", "").replace(")", "").split(",");
+          const [latS, lonS] = l.location.replace(/[()]/g, "").split(",");
           const lat = parseFloat(latS);
           const lon = parseFloat(lonS);
 
-          const intensity = (agg.avg - minVal) / (maxVal - minVal); // normalize between 0 and 1
+          const intensity = (Number(agg.avg) - minVal) / range;
 
           return { lat, lon, intensity };
         })
