@@ -96,12 +96,159 @@ export type Database = {
         }
         Relationships: []
       }
+      sensors: {
+        Row: {
+          id: string
+        }
+        Insert: {
+          id: string
+        }
+        Update: {
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      crowd_index: {
+        Row: {
+          co2: number | null
+          crowd_index: number | null
+          humidity: number | null
+          measured_at: string | null
+          node: number | null
+          noise: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_global_stats: {
+        Row: {
+          avg_co2: number | null
+          avg_humidity: number | null
+          avg_noise: number | null
+          avg_uv: number | null
+          day: string | null
+          samples: number | null
+        }
+        Relationships: []
+      }
+      daily_node_stats: {
+        Row: {
+          avg_co2: number | null
+          avg_humidity: number | null
+          avg_noise: number | null
+          avg_uv: number | null
+          co2_p50: number | null
+          co2_p90: number | null
+          co2_p99: number | null
+          day: string | null
+          max_co2: number | null
+          min_co2: number | null
+          node: number | null
+          samples: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hourly_smoothed: {
+        Row: {
+          avg_co2: number | null
+          avg_humidity: number | null
+          avg_noise: number | null
+          avg_uv: number | null
+          hour: string | null
+          node: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      measure_with_location: {
+        Row: {
+          co2: number | null
+          humidity: number | null
+          location: unknown
+          measured_at: string | null
+          node: number | null
+          noise: number | null
+          uv: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spatial_avg: {
+        Row: {
+          avg_co2: number | null
+          avg_humidity: number | null
+          avg_noise: number | null
+          avg_uv: number | null
+          lat: number | null
+          lon: number | null
+          node: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      anomaly_score_co2: {
+        Args: { node_id: number }
+        Returns: {
+          co2: number
+          measured_at: string
+          zscore: number
+        }[]
+      }
+      node_stats: {
+        Args: { node_id: number }
+        Returns: {
+          avg_co2: number
+          avg_humidity: number
+          avg_noise: number
+          avg_uv: number
+          max_co2: number
+          min_co2: number
+          p50_co2: number
+          p90_co2: number
+          p99_co2: number
+        }[]
+      }
+      refresh_iot_materialized_views: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
@@ -114,22 +261,22 @@ export type Database = {
     Tables: {
       locations: {
         Row: {
-          from_dt: string | null
+          from_dt: string
           location: unknown
           node: number
-          to_dt: string | null
+          to_dt: string
         }
         Insert: {
-          from_dt?: string | null
+          from_dt?: string
           location: unknown
           node: number
-          to_dt?: string | null
+          to_dt?: string
         }
         Update: {
-          from_dt?: string | null
+          from_dt?: string
           location?: unknown
           node?: number
-          to_dt?: string | null
+          to_dt?: string
         }
         Relationships: [
           {
@@ -194,12 +341,159 @@ export type Database = {
         }
         Relationships: []
       }
+      sensors: {
+        Row: {
+          id: string
+        }
+        Insert: {
+          id: string
+        }
+        Update: {
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      crowd_index: {
+        Row: {
+          co2: number | null
+          crowd_index: number | null
+          humidity: number | null
+          measured_at: string | null
+          node: number | null
+          noise: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_global_stats: {
+        Row: {
+          avg_co2: number | null
+          avg_humidity: number | null
+          avg_noise: number | null
+          avg_uv: number | null
+          day: string | null
+          samples: number | null
+        }
+        Relationships: []
+      }
+      daily_node_stats: {
+        Row: {
+          avg_co2: number | null
+          avg_humidity: number | null
+          avg_noise: number | null
+          avg_uv: number | null
+          co2_p50: number | null
+          co2_p90: number | null
+          co2_p99: number | null
+          day: string | null
+          max_co2: number | null
+          min_co2: number | null
+          node: number | null
+          samples: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hourly_smoothed: {
+        Row: {
+          avg_co2: number | null
+          avg_humidity: number | null
+          avg_noise: number | null
+          avg_uv: number | null
+          hour: string | null
+          node: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      measure_with_location: {
+        Row: {
+          co2: number | null
+          humidity: number | null
+          location: unknown
+          measured_at: string | null
+          node: number | null
+          noise: number | null
+          uv: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spatial_avg: {
+        Row: {
+          avg_co2: number | null
+          avg_humidity: number | null
+          avg_noise: number | null
+          avg_uv: number | null
+          lat: number | null
+          lon: number | null
+          node: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "measures_node_fkey"
+            columns: ["node"]
+            isOneToOne: false
+            referencedRelation: "nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      anomaly_score_co2: {
+        Args: { node_id: number }
+        Returns: {
+          co2: number
+          measured_at: string
+          zscore: number
+        }[]
+      }
+      node_stats: {
+        Args: { node_id: number }
+        Returns: {
+          avg_co2: number
+          avg_humidity: number
+          avg_noise: number
+          avg_uv: number
+          max_co2: number
+          min_co2: number
+          p50_co2: number
+          p90_co2: number
+          p99_co2: number
+        }[]
+      }
+      refresh_iot_materialized_views: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
