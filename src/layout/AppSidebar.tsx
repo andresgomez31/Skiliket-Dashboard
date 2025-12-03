@@ -16,6 +16,7 @@ import {
   PlugInIcon,
   TableIcon,
   UserCircleIcon,
+  TaskIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
 
@@ -32,7 +33,9 @@ const navItems: NavItem[] = [
     name: "Dashboard",
     subItems: [
       { name: "Sensors data", path: "/sensdata", pro: false }, 
-      { name: "Calculated data", path: "/calcdata", pro: false }],
+      { name: "Calculated data", path: "/calcdata", pro: false },
+      { name: "Crowd Heatmap", path: "/heatmap", pro: false }
+    ],
   },
   /*{
     icon: <CalenderIcon />,
@@ -67,7 +70,9 @@ const navItems: NavItem[] = [
   },*/
 ];
 
-const othersItems: NavItem[] = [
+const othersItems: NavItem[] = 
+/*
+[
   {
     icon: <PieChartIcon />,
     name: "Charts",
@@ -97,6 +102,8 @@ const othersItems: NavItem[] = [
     ],
   },
 ];
+*/
+[];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -315,6 +322,7 @@ const AppSidebar: React.FC = () => {
         <Link href="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
+            {/*
               <Image
                 className="dark:hidden"
                 src="/images/logo/logo.svg"
@@ -329,6 +337,8 @@ const AppSidebar: React.FC = () => {
                 width={150}
                 height={40}
               />
+              */}
+              <span className="font-bold text-2xl text-brand-500">Skiliket</span>
             </>
           ) : (
             <Image
@@ -368,7 +378,7 @@ const AppSidebar: React.FC = () => {
                     : "justify-start"
                 }`}
               >
-                {isExpanded || isHovered || isMobileOpen ? (
+                {(isExpanded || isHovered || isMobileOpen) && othersItems.length > 0 ? (
                   "Others"
                 ) : (
                   <HorizontaLDots />
