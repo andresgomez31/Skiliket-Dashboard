@@ -16,19 +16,19 @@ export type Database = {
     Tables: {
       locations: {
         Row: {
-          from_dt: string | null
+          from_dt: string
           location: unknown
           node: number
           to_dt: string | null
         }
         Insert: {
-          from_dt?: string | null
+          from_dt?: string
           location: unknown
           node: number
           to_dt?: string | null
         }
         Update: {
-          from_dt?: string | null
+          from_dt?: string
           location?: unknown
           node?: number
           to_dt?: string | null
@@ -50,6 +50,7 @@ export type Database = {
           measured_at: string | null
           node: number
           noise: number
+          temperature: number | null
           uv: number
         }
         Insert: {
@@ -58,6 +59,7 @@ export type Database = {
           measured_at?: string | null
           node: number
           noise: number
+          temperature?: number | null
           uv: number
         }
         Update: {
@@ -66,6 +68,7 @@ export type Database = {
           measured_at?: string | null
           node?: number
           noise?: number
+          temperature?: number | null
           uv?: number
         }
         Relationships: [
@@ -234,6 +237,14 @@ export type Database = {
           zscore: number
         }[]
       }
+      last_seen_per_node: {
+        Args: never
+        Returns: {
+          location: unknown
+          measured_at: string
+          node: number
+        }[]
+      }
       node_stats: {
         Args: { node_id: number }
         Returns: {
@@ -295,6 +306,7 @@ export type Database = {
           measured_at: string | null
           node: number
           noise: number
+          temperature: number | null
           uv: number
         }
         Insert: {
@@ -303,6 +315,7 @@ export type Database = {
           measured_at?: string | null
           node: number
           noise: number
+          temperature?: number | null
           uv: number
         }
         Update: {
@@ -311,6 +324,7 @@ export type Database = {
           measured_at?: string | null
           node?: number
           noise?: number
+          temperature?: number | null
           uv?: number
         }
         Relationships: [
