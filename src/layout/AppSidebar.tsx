@@ -322,7 +322,6 @@ const AppSidebar: React.FC = () => {
         <Link href="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
-            {/*
               <Image
                 className="dark:hidden"
                 src="/images/logo/logo.svg"
@@ -337,8 +336,6 @@ const AppSidebar: React.FC = () => {
                 width={150}
                 height={40}
               />
-              */}
-              <span className="font-bold text-2xl text-brand-500">Skiliket</span>
             </>
           ) : (
             <Image
